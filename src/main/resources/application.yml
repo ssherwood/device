@@ -13,9 +13,9 @@ spring:
       transaction-isolation: ${HIKARI_TRANSACTION_ISOLATION:TRANSACTION_READ_COMMITTED}
       connection-init-sql: ${HIKARI_CONNECTION_INIT_SQL:}
       data-source-properties:
-        socketTimeout: ${YSQL_SOCKET_TIMEOUT:10} # default 0s
+        socketTimeout: ${YSQL_SOCKET_TIMEOUT:15} # default 0s
         connectTimeout: ${YSQL_CONNECT_TIMEOUT:10} # default 10s
-        loginTimeout: ${YSQL_LOGIN_TIMEOUT:0} # default 0s
+        loginTimeout: ${YSQL_LOGIN_TIMEOUT:0} # default 0s means infinity
         options: ${YSQL_OPTIONS:-c statement_timeout=8s}
         prepareThreshold: ${YSQL_PREPARE_THRESHOLD:1}
 
