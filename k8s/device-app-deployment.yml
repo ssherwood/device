@@ -1,0 +1,106 @@
+#
+# TODO
+# - find a way to fully externalize the application yml into a config map.
+# - Improve liveness/readiness probes to be active sooner w/o failing out.
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: device-app
+spec:
+  selector:
+    matchLabels:
+      app: device-app
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
+      labels:
+        app: device-app
+    spec:
+      containers:
+        - name: device-app
+          image: ssherwood/device-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: device-app-config
+          env:
+            - name: DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: sample-app-db-secrets
+                  key: sample-app.db.username
+            - name: DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sample-app-db-secrets
+                  key: sample-app.db.password
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 3
+          resources:
+            limits:
+              cpu: "4"
+              ephemeral-storage: "1Gi"
+              memory: "8Gi"
+            requests:
+              cpu: "4"
+              ephemeral-storage: "1Gi"
+              memory: "8Gi"
+---
+#
+# Right now this autoscaler isn't all that effective since it is hard to push the CPU
+# to the threshold with this application.
+#
+# TODO
+# - find a way to use custom metrics that use the LoadBalancer that is provisioned below
+#
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: device-app
+  namespace: default
+spec:
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - resource:
+        name: cpu
+        target:
+          averageUtilization: 65
+          type: Utilization
+      type: Resource
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: device-app
+---
+#
+# Deploy the load balancer service to map external client request to the "device-app"
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: device-app-service
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: device-app
