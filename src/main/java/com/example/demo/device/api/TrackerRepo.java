@@ -47,5 +47,7 @@ public class TrackerRepo {
     public int[] batchUpdateStatusEvent(List<DeviceTrackerBatchUpdate> deviceTrackerData) {
         SqlParameterSource[] batch = SqlParameterSourceUtils.createBatch(deviceTrackerData);
         return jdbcTemplate.batchUpdate("UPDATE yb_device_tracker SET status = :status, updated_date = current_timestamp WHERE device_id = :deviceId AND media_id = :mediaId", batch);
+        // trying w/o server-side timestamp
+        //return jdbcTemplate.batchUpdate("UPDATE yb_device_tracker SET status = :status, updated_date = :updatedDate WHERE device_id = :deviceId AND media_id = :mediaId", batch);
     }
 }
