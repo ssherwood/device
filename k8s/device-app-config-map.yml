@@ -8,9 +8,7 @@ metadata:
   namespace: default
 data:
   DATASOURCE_DRIVER_CLASS_NAME: "com.yugabyte.Driver"
-  DATASOURCE_URL: "jdbc:yugabytedb://10.204.0.131:5433/yugabyte?currentSchema=public&load-balance=true&topology-keys=gcp.us-east1.*:1,gcp.us-central1.*:2"
-  #DATASOURCE_USERNAME: "***" # this should be provided by secret configmap
-  #DATASOURCE_PASSWORD: "***" # this should be provided by secret configmap
+  DATASOURCE_URL: "jdbc:yugabytedb://10.204.0.122:5433/yugabyte?currentSchema=public&load-balance=true&topology-keys=gcp.us-east1.*:1,gcp.us-central1.*:2"
   HIKARI_MAXIMUM_POOL_SIZE: "50"
   HIKARI_MINIMUM_IDLE: "50"
   HIKARI_IDLE_TIMEOUT: "0"
@@ -23,7 +21,8 @@ data:
   YSQL_SOCKET_TIMEOUT: "15"
   YSQL_CONNECT_TIMEOUT: "10"
   YSQL_LOGIN_TIMEOUT: "0"
-  #YSQL_OPTIONS: "-c statement_timeout=8s"
+  YSQL_OPTIONS: "-c statement_timeout=8s"
   YSQL_PREPARE_THRESHOLD: "1"
   YB_DB_LOG_LEVEL: "DEBUG"
   YB_DRIVER_LOG_LEVEL: "DEBUG"
+  SPRING_JDBC_TEMPLATE_LOG: "INFO"

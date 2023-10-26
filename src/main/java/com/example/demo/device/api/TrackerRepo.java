@@ -5,7 +5,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSourceUtils;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -23,12 +22,13 @@ public class TrackerRepo {
         var params = Map.of(
                 "deviceId", deviceTrackerData.deviceId(),
                 "mediaId", deviceTrackerData.mediaId(),
+                "accountId", deviceTrackerData.accountId(),
                 "status", deviceTrackerData.status(),
                 "createdDate", deviceTrackerData.createdDate(),
                 "updatedDate", deviceTrackerData.updatedDate());
 
-        var rows = jdbcTemplate.update("INSERT INTO yb_device_tracker(device_id, media_id, status, created_date, updated_date) VALUES(:deviceId, :mediaId, :status, :createdDate, :updatedDate);", params);
-        return jdbcTemplate.queryForObject("SELECT * FROM yb_device_tracker where device_id = :deviceId", Map.of("deviceId", deviceTrackerData.deviceId()), new DataClassRowMapper<>(DeviceTrackerData.class));
+        var rows = jdbcTemplate.update("INSERT INTO yb_device_tracker2(device_id, media_id, account_id, status, created_date, updated_date) VALUES(:deviceId, :mediaId, :accountId, :status, :createdDate, :updatedDate);", params);
+        return jdbcTemplate.queryForObject("SELECT * FROM yb_device_tracker2 where device_id = :deviceId", Map.of("deviceId", deviceTrackerData.deviceId()), new DataClassRowMapper<>(DeviceTrackerData.class));
     }
 
     public DeviceTrackerData updateStatusEvent(DeviceTrackerUpdate deviceTrackerData) {
@@ -38,16 +38,39 @@ public class TrackerRepo {
                 "newStatus", deviceTrackerData.status(),
                 "now", OffsetDateTime.now());
 
-        var rows = jdbcTemplate.update("UPDATE yb_device_tracker SET status = :newStatus, updated_date = :now WHERE device_id = :deviceId AND media_id = :mediaId", params);
-        return jdbcTemplate.queryForObject("SELECT * FROM yb_device_tracker where device_id = :deviceId and media_id = :mediaId",
+        var rows = jdbcTemplate.update("UPDATE yb_device_tracker2 SET status = :newStatus, updated_date = :now WHERE device_id = :deviceId AND media_id = :mediaId", params);
+        return jdbcTemplate.queryForObject("SELECT * FROM yb_device_tracker2 where device_id = :deviceId and media_id = :mediaId",
                 Map.of("deviceId", deviceTrackerData.deviceId(), "mediaId", deviceTrackerData.mediaId()), new DataClassRowMapper<>(DeviceTrackerData.class));
     }
 
-    @Transactional //causes tx conflict errors, bigger batches == more conflicts
+    //@Transactional //causes tx conflict errors, bigger batches == more conflicts
     public int[] batchUpdateStatusEvent(List<DeviceTrackerBatchUpdate> deviceTrackerData) {
         SqlParameterSource[] batch = SqlParameterSourceUtils.createBatch(deviceTrackerData);
-        return jdbcTemplate.batchUpdate("UPDATE yb_device_tracker SET status = :status, updated_date = current_timestamp WHERE device_id = :deviceId AND media_id = :mediaId", batch);
-        // trying w/o server-side timestamp
-        //return jdbcTemplate.batchUpdate("UPDATE yb_device_tracker SET status = :status, updated_date = :updatedDate WHERE device_id = :deviceId AND media_id = :mediaId", batch);
+        return jdbcTemplate.batchUpdate("UPDATE yb_device_tracker2 SET status = :status, updated_date = clock_timestamp() WHERE device_id = :deviceId AND media_id = :mediaId", batch);
+    }
+
+    public int[] batchUpsertStatusEvent(List<DeviceTrackerBatchUpdate> deviceTrackerData) {
+        SqlParameterSource[] batch = SqlParameterSourceUtils.createBatch(deviceTrackerData);
+        return jdbcTemplate.batchUpdate(
+                """
+                    INSERT INTO yb_device_tracker2(device_id, media_id, account_id, status, created_date, updated_date)
+                    VALUES(:deviceId, :mediaId, :accountId, :status, clock_timestamp(), clock_timestamp())
+                    ON CONFLICT (device_id, media_id)
+                    DO UPDATE SET status = EXCLUDED.status,
+                    updated_date = EXCLUDED.updated_date
+                        """, batch);
+    }
+
+//    public int[] batchUpsertStatusEventCTE(List<DeviceTrackerBatchUpdate> deviceTrackerData) {
+//        SqlParameterSource[] batch = SqlParameterSourceUtils.createBatch(deviceTrackerData);
+//        return jdbcTemplate.batchUpdate("""
+//            WITH data(d, m, a, s, c, u) as VALUES(:data),
+//
+//        """, batch);
+//    }
+
+    public int deleteExpiredEntries(OffsetDateTime expireDate, int splitPoint) {
+        var params = Map.of("expireDate", expireDate, "splitPoint", splitPoint);
+        return jdbcTemplate.update("delete from yb_device_tracker2 where updated_date < :expireDate and ((yb_hash_code(updated_date)%16) = :splitPoint", params);
     }
 }

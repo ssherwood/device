@@ -35,4 +35,5 @@ logging.level:
   com.zaxxer.hikari: ${HIKARI_LOG_LEVEL:TRACE}
   com.zaxxer.hikari.HikariConfig: ${HIKARI_CONFIG_LOG_LEVEL:DEBUG}
   com.yugabyte: ${YB_LOG_LEVEL:INFO}
-  com.yugabyte.Driver: ${YB_DRIVER_LOG_LEVEL:TRACE}
+  com.yugabyte.Driver: ${YB_DRIVER_LOG_LEVEL:INFO} #DEBUG for connection info
+  org.springframework.jdbc.core.JdbcTemplate: ${SPRING_JDBC_TEMPLATE_LOG:TRACE}

@@ -12,8 +12,14 @@ data:
         #wait_time = between(0.5, 1)
         json_headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}    
         
+        #@task
+        #@tag('deviceTrackerUpsert')
+        def patch_device_tracker_upsert(self):
+            batch_size = 100
+            self.client.post(f"/api/tracker/batch-upsert/{batch_size}")
+        
         @task
-        @tag('deviceTracker')
-        def patch_device_tracker3(self):
+        @tag('deviceTrackerBatch')
+        def patch_device_tracker_batch(self):
             batch_size = 100
             self.client.post(f"/api/tracker/batch/{batch_size}")
