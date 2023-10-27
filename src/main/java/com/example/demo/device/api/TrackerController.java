@@ -9,10 +9,12 @@ import java.util.*;
 @RequestMapping("/api/tracker")
 public class TrackerController {
     private final TrackerRepo trackerRepo;
+    private final TrackerService trackerService;
     private final Random random = new Random();
 
-    public TrackerController(TrackerRepo trackerRepo) {
+    public TrackerController(TrackerRepo trackerRepo, TrackerService trackerService) {
         this.trackerRepo = trackerRepo;
+        this.trackerService = trackerService;
     }
 
     // Faux method to generate new data
@@ -72,6 +74,23 @@ public class TrackerController {
         }
 
         return results;
+    }
+
+    @PostMapping("/batch-cte/{batchSize}")
+    public int batchUpsertCte(@PathVariable int batchSize) {
+        Set<DeviceTrackerBatchUpdate> batchUpdate = new HashSet<>();
+        while (batchUpdate.size() <= batchSize) {
+            // only add unique devices
+            batchUpdate.add(generateDeviceUpdate(500_000));
+        }
+        var updateList = List.copyOf(batchUpdate);
+        var results = trackerRepo.batchUpsertStatusEventCTE(updateList);
+        return results;
+    }
+
+    @PostMapping("/purge")
+    public int purge() {
+        return trackerService.removeExpired(30);
     }
 
     private DeviceTrackerBatchUpdate generateDeviceUpdate(int randSize) {
