@@ -3,9 +3,8 @@ package com.example.demo.device.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties("spring.retry")
-public class RetryProperties {
+public class RetryConfigProperties {
     private int maxAttempts = 3;
-
     private int backoffInitialInterval = 2;
     private int backoffMultiplier = 8;
     private int backoffMaxInterval = 3000;

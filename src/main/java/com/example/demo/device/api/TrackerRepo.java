@@ -39,13 +39,7 @@ public class TrackerRepo {
                 "createdDate", deviceTrackerData.createdDate(),
                 "updatedDate", deviceTrackerData.updatedDate());
 
-        try {
-            var rows = jdbcTemplate.update("INSERT INTO yb_device_tracker2(device_id, media_id, account_id, status, created_date, updated_date) VALUES(:deviceId, :mediaId, :accountId, :status, :createdDate, :updatedDate);", params);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw ex;
-        }
-
+        var rows = jdbcTemplate.update("INSERT INTO yb_device_tracker2(device_id, media_id, account_id, status, created_date, updated_date) VALUES(:deviceId, :mediaId, :accountId, :status, :createdDate, :updatedDate);", params);
         return jdbcTemplate.queryForObject("SELECT * FROM yb_device_tracker2 where device_id = :deviceId and media_id = :mediaId", Map.of("deviceId", deviceTrackerData.deviceId(), "mediaId", deviceTrackerData.mediaId()), new DataClassRowMapper<>(DeviceTrackerData.class));
     }
 

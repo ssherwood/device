@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
  * errors that indicate that they could be successful if just retried.
  */
 @Configuration
-@EnableConfigurationProperties(RetryProperties.class)
+@EnableConfigurationProperties(RetryConfigProperties.class)
 public class RetryConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(RetryConfig.class);
 
@@ -33,9 +33,9 @@ public class RetryConfig {
     // XX000 - other connection related issues (not classified)
     private static final Pattern SQL_STATE_PATTERN = Pattern.compile("^(40001)|(40P01)|(57P01)|(08006)|(XX000)");
 
-    private final RetryProperties retryProperties;
+    private final RetryConfigProperties retryProperties;
 
-    public RetryConfig(RetryProperties retryProperties) {
+    public RetryConfig(RetryConfigProperties retryProperties) {
         this.retryProperties = retryProperties;
     }
 
