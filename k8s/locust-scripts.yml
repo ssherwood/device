@@ -21,5 +21,5 @@ data:
         @task
         @tag('deviceTrackerBatch')
         def patch_device_tracker_batch(self):
-            batch_size = 50
+            batch_size = 100
             self.client.post(f"/api/tracker/batch/{batch_size}")

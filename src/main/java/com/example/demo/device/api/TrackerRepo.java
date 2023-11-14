@@ -13,7 +13,10 @@ import org.springframework.stereotype.Repository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+
+import static java.util.Objects.requireNonNullElse;
 
 @Repository
 public class TrackerRepo {
@@ -21,6 +24,10 @@ public class TrackerRepo {
 
     public TrackerRepo(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public List<DeviceTrackerData> findByDeviceId(UUID deviceId) {
+        return jdbcTemplate.query("SELECT * from yb_device_tracker2 where device_id = :deviceId", Map.of("deviceId", deviceId), new DataClassRowMapper<>(DeviceTrackerData.class));
     }
 
     public DeviceTrackerData saveNew(DeviceTrackerData deviceTrackerData) {
@@ -32,8 +39,14 @@ public class TrackerRepo {
                 "createdDate", deviceTrackerData.createdDate(),
                 "updatedDate", deviceTrackerData.updatedDate());
 
-        var rows = jdbcTemplate.update("INSERT INTO yb_device_tracker2(device_id, media_id, account_id, status, created_date, updated_date) VALUES(:deviceId, :mediaId, :accountId, :status, :createdDate, :updatedDate);", params);
-        return jdbcTemplate.queryForObject("SELECT * FROM yb_device_tracker2 where device_id = :deviceId", Map.of("deviceId", deviceTrackerData.deviceId()), new DataClassRowMapper<>(DeviceTrackerData.class));
+        try {
+            var rows = jdbcTemplate.update("INSERT INTO yb_device_tracker2(device_id, media_id, account_id, status, created_date, updated_date) VALUES(:deviceId, :mediaId, :accountId, :status, :createdDate, :updatedDate);", params);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw ex;
+        }
+
+        return jdbcTemplate.queryForObject("SELECT * FROM yb_device_tracker2 where device_id = :deviceId and media_id = :mediaId", Map.of("deviceId", deviceTrackerData.deviceId(), "mediaId", deviceTrackerData.mediaId()), new DataClassRowMapper<>(DeviceTrackerData.class));
     }
 
     public DeviceTrackerData updateStatusEvent(DeviceTrackerUpdate deviceTrackerData) {
@@ -56,16 +69,16 @@ public class TrackerRepo {
 
     public int[] batchUpsertStatusEvent(List<DeviceTrackerBatchUpdate> deviceTrackerData) {
         SqlParameterSource[] batch = SqlParameterSourceUtils.createBatch(deviceTrackerData);
-        return jdbcTemplate.batchUpdate(
-                """
-                        INSERT INTO yb_device_tracker2(device_id, media_id, account_id, status, created_date, updated_date)
-                        VALUES(:deviceId, :mediaId, :accountId, :status, clock_timestamp(), clock_timestamp())
-                        ON CONFLICT (device_id, media_id)
-                        DO UPDATE SET status = EXCLUDED.status,
-                        updated_date = EXCLUDED.updated_date
-                            """, batch);
+        return jdbcTemplate.batchUpdate("""
+                INSERT INTO yb_device_tracker2(device_id, media_id, account_id, status, created_date, updated_date)
+                VALUES(:deviceId, :mediaId, :accountId, :status, clock_timestamp(), clock_timestamp())
+                ON CONFLICT (device_id, media_id)
+                DO UPDATE SET status = EXCLUDED.status,
+                updated_date = EXCLUDED.updated_date
+                """, batch);
     }
 
+    // WIP - CTEs might be a little more efficient?  Getting this to work with JDBC Template however...
     public int batchUpsertStatusEventCTE(List<DeviceTrackerBatchUpdate> deviceTrackerData) {
 
         MapSqlParameterSource p = new MapSqlParameterSource()
@@ -88,6 +101,18 @@ public class TrackerRepo {
                 WHERE (upsert.device_id, upsert.media_id) NOT IN (SELECT updated.device_id, updated.media_id FROM updated);
                 """, p, keyHolder);
 
+    }
+
+    /**
+     * Simplistic count of active devices/content for a specific account
+     *
+     * @param accountId the account to count
+     * @return number of entries for the given account
+     */
+    public int countActiveDevices(UUID accountId) {
+        var params = Map.of("accountId", accountId);
+        var result = jdbcTemplate.queryForObject("select count(account_id) from yb_device_tracker2 where account_id = :accountId", params, Integer.class);
+        return requireNonNullElse(result, 0);
     }
 
     public int deleteExpiredEntries(OffsetDateTime expireDate, int splitPoint) {
