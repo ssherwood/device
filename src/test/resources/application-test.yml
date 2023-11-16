@@ -1,0 +1,14 @@
+###
+### General testing profile for integration style tests.
+###
+### These settings are specifically for local testing and
+### should not be configured in a typically deployed artifacts
+### (which is why this profile is in src/test).
+###
+
+spring:
+  test:
+    database:
+      replace: none
+  flyway:
+    clean-disabled: false

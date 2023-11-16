@@ -17,6 +17,9 @@ repositories {
 
 ext {
 	set('yugabyteDriverVersion', '42.3.5-yb-3')
+	set('hypersistenceUtilsVersion', '3.5.2')
+	set('testcontainersVersion', '1.18.3')
+	set('flywayTestExtensionsVersion', '9.5.0')
 }
 
 dependencies {
@@ -26,10 +29,15 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-configuration-processor'
 	implementation 'org.springframework.retry:spring-retry'
 	implementation 'org.springframework:spring-aspects'
+	implementation 'org.flywaydb:flyway-core'
 
 	runtimeOnly "com.yugabyte:jdbc-yugabytedb:${yugabyteDriverVersion}"
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation "org.flywaydb.flyway-test-extensions:flyway-spring-test:${flywayTestExtensionsVersion}"
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:yugabytedb'
 }
 
 tasks.named('test') {

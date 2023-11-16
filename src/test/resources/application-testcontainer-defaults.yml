@@ -1,0 +1,15 @@
+###
+### Testing profile for activating vanilla Spring Boot support for
+### Testcontainers.
+###
+### In general, don't use this profile but instead use
+### @ExtendWith(IntegrationTestExtension.class) in tests that have
+### a database dependency.
+###
+### See also: https://www.yugabyte.com/blog/use-testcontainers-test-spring-boot-applications/
+###
+
+spring:
+  datasource:
+    url: jdbc:tc:yugabyte:2.18.4.0-b52:///yugabyte
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
