@@ -6,7 +6,7 @@ spring:
     backoff-max-interval: ${YSQL_BACKOFF_MAX_INTERVAL_MS:3000}
   datasource:
     driver-class-name: ${DATASOURCE_DRIVER_CLASS_NAME:com.yugabyte.Driver}
-    url: ${DATASOURCE_URL:jdbc:yugabytedb://localhost:5433/yugabyte?currentSchema=public&load-balance=true}
+    url: ${DATASOURCE_URL:jdbc:yugabytedb://localhost:5433/yugabyte?currentSchema=yb_device_us&load-balance=true}
     username: ${DATASOURCE_USERNAME:yugabyte}
     password: ${DATASOURCE_PASSWORD:}
     hikari:
@@ -24,7 +24,10 @@ spring:
         options: ${YSQL_OPTIONS:-c statement_timeout=8s}
         prepareThreshold: ${YSQL_PREPARE_THRESHOLD:1}
   flyway:
-    lock-retry-count:
+    default-schema: ${DATABASE_SCHEMA:yb_device_us}
+    user: ${FLYWAY_USERNAME:yugabyte}
+    password: ${FLYWAY_PASSWORD:}
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:false}
 
 ## Added for K8s environments
 management:
@@ -42,6 +45,6 @@ logging.level:
   com.zaxxer.hikari: ${HIKARI_LOG_LEVEL:TRACE}
   com.zaxxer.hikari.HikariConfig: ${HIKARI_CONFIG_LOG_LEVEL:DEBUG}
   com.yugabyte: ${YB_LOG_LEVEL:INFO}
-  com.yugabyte.Driver: ${YB_DRIVER_LOG_LEVEL:INFO} #DEBUG for connection info
+  com.yugabyte.Driver: ${YB_DRIVER_LOG_LEVEL:INFO} # use DEBUG for connection info
   org.springframework.jdbc.core.JdbcTemplate: ${SPRING_JDBC_TEMPLATE_LOG:TRACE}
-  org.springframework.retry.support.RetryTemplate: TRACE
+  org.springframework.retry.support.RetryTemplate: ${SPRING_RETRY_LOG:DEBUG}
