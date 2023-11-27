@@ -53,8 +53,7 @@ public class FlywayMigrationTests {
     void runMigration_SelectCountFromFlywaySchemaHistory() throws Exception {
 
         // determine if any migrations tripped breaking version
-        // when is it okay to use `set yb_make_next_ddl_statement_nonbreaking = true;`?
-        // TODO
+        // refer to src/main/resources/db/migration/README.md
         var breakingVersion = template.queryForObject("select last_breaking_version from pg_yb_catalog_version;", Integer.class);
         assertThat("Flyway Migration contained a catalog breaking feature!", breakingVersion, is(1));
 

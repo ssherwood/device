@@ -1,5 +1,7 @@
 --
--- Assumes Flyway will create the schema for the target database
+-- Assumptions:
+-- The target database already exists.
+-- Flyway will create the schema in the target database (see spring.flyway.default-schema)
 --
 
 CREATE TABLE yb_device_tracker

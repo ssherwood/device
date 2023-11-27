@@ -79,5 +79,7 @@ active connections to fail if the change would go unacknowledged.
 
 Examples:
 
-- Adding a column to a table with a constraint or default value.
-- Removing or renaming a table or column currently being used by the application.
+- Adding a column to an existing table with a constraint or default value.
+  - Risks: in-flight transactions may violate constraint and/or miss default.
+  - Remediation: table can be checked and manually patch any affected rows.
+- Removing or renaming an existing table or column currently being used by the application.
