@@ -111,7 +111,7 @@ public class TrackerRepo {
 
     public int deleteExpiredEntries(OffsetDateTime expireDate, int splitPoint) {
         var params = Map.of("expireDate", expireDate, "splitPoint", splitPoint);
-        return jdbcTemplate.update("delete from yb_device_tracker2 where updated_date < :expireDate and ((yb_hash_code(updated_date)%16) = :splitPoint", params);
+        return jdbcTemplate.update("delete from yb_device_tracker where updated_date < :expireDate and ((yb_hash_code(updated_date)%16) = :splitPoint", params);
     }
 
     @Async

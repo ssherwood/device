@@ -95,6 +95,47 @@ public class TrackerService {
         return results;
     }
 
+    /**
+     * This expiring logic uses a special index technique on updated_date.  The
+     * index is forced to split into a specific number of buckets that, when
+     * coupled with yb_hash_code() and a modulus function, neatly organize the
+     * indexed updated_date in descending ordered fashion:
+     * <p>
+     * <i>create index nonconcurrently on yb_device_tracker ((yb_hash_code(updated_date) % 16) asc, updated_date desc) split at values( (1), (2), (3), (4), (5), (6), (7), (8), (9), (10), (11), (12), (13), (14) );</i>
+     * <p>
+     * This insures a good distribution of the index data across the cluster
+     * and is still usable if just ordering updated_date.  For a cleanup
+     * operation such as this, just iterating on the number of buckets can be
+     * good enough to run the purge across all the ordered dates efficiently.
+     * <p>
+     * This operation can also be parallelized (see above operation that does
+     * not use an index).
+     *
+     * @param daysOld number of days old an entry needs to be to qualify for deletion
+     * @return count of total deleted rows
+     */
+    @Transactional
+    @Retryable(interceptor = "ysqlRetryInterceptor")
+    public int expireOld(int daysOld) {
+        var total = 0;
+        var expireTime = OffsetDateTime.now().minusDays(daysOld);
+
+        // naive sequential... could be done in parallel
+        for (int i = 0; i < 16; i++) {
+            total += trackerRepo.deleteExpiredEntries(expireTime, i);
+        }
+
+        return total;
+    }
+
+    /**
+     * This expiring logic avoids using an index entirely and takes advantage
+     * of yb_hash_code() directly to parallelize the work.  Eliminating the
+     * index can improve the write path throughput.
+     *
+     * @param numberOfTablets to determine the number of parallel jobs to execute
+     * @return count of total deleted rows
+     */
     @Transactional
     @Retryable(interceptor = "ysqlRetryInterceptor")
     public int removeExpired(int numberOfTablets) {
@@ -113,6 +154,7 @@ public class TrackerService {
             futures.add(trackerRepo.deleteExpiredEntriesNoIndex(expiredDate, partitionBegin, partitionEnd));
         }
 
+        // NOTE this is still limited by the number of threads in the default job pool
         CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0])).join();
 
         // TODO instead of returning just an int, it would be nice to have the return type
@@ -131,21 +173,9 @@ public class TrackerService {
         return deletedRows;
     }
 
-    @Transactional
-    @Retryable(interceptor = "ysqlRetryInterceptor")
-    public int expireOld(int daysOld) {
-        var total = 0;
-        var expireTime = OffsetDateTime.now().minusDays(daysOld);
-        // naive sequential... could be in parallel
-        for (int i = 0; i < 16; i++) {
-            total += trackerRepo.deleteExpiredEntries(expireTime, i);
-        }
-        return total;
-    }
-
-    // used for testing
+    // used sometimes for testing retryable
     @SuppressWarnings("unchecked")
-    static <E extends Throwable> void sneakyThrow(Throwable e) throws E {
+    private static <E extends Throwable> void sneakyThrow(Throwable e) throws E {
         throw (E) e;
     }
 }
