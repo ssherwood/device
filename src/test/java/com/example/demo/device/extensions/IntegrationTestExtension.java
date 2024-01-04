@@ -27,6 +27,8 @@ public class IntegrationTestExtension implements BeforeAllCallback, AfterAllCall
         System.setProperty("spring.datasource.username", ysqlDB.getUsername());
         System.setProperty("spring.datasource.password", ysqlDB.getPassword());
         System.setProperty("spring.datasource.driver-class-name", ysqlDB.getDriverClassName()); // needed for flyway
+        System.setProperty("spring.flyway.user", ysqlDB.getUsername());
+        System.setProperty("spring.flyway.password", ysqlDB.getPassword());
     }
 
     @Override

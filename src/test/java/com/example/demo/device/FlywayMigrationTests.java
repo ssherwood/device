@@ -3,16 +3,19 @@ package com.example.demo.device;
 import com.example.demo.device.extensions.IntegrationTestExtension;
 import org.flywaydb.test.FlywayTestExecutionListener;
 import org.flywaydb.test.annotation.FlywayTest;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestExecutionListeners;
-import org.springframework.test.context.event.annotation.BeforeTestClass;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
 import java.io.BufferedReader;
@@ -37,6 +40,9 @@ public class FlywayMigrationTests {
     @Autowired
     private ResourcePatternResolver resourcePatternResolver;
 
+    @Value("${spring.flyway.default-schema:public}")
+    private String flywayDefaultSchema;
+
     /**
      * Simple test that validates that the Flyway schema migration is done successfully
      * by selecting a count of rows on the flyway_schema_history table.
@@ -59,13 +65,13 @@ public class FlywayMigrationTests {
 
         // count the number of successful migrations in the flyway_schema_history table
         // this should match the number of migration files in db/migration plus db/testing (as included above)
-        var migrationCount = template.queryForObject("select count(*) from flyway_schema_history where success = true", Integer.class);
-        assertThat(migrationCount, is(3));
+        var migrationCount = template.queryForObject(String.format("select count(*) from %s.flyway_schema_history where success = true", flywayDefaultSchema), Integer.class);
+        assertThat(migrationCount, is(6));
 
         // for each matching migration file, confirm that it matches the flyway_schema_history checksum
         Arrays.stream(resourcePatternResolver.getResources("classpath*:db/**/V*.sql"))
                 .forEach(r -> {
-                    var checksum = template.queryForObject("select checksum from flyway_schema_history where script = ?", Integer.class, r.getFilename());
+                    var checksum = template.queryForObject(String.format("select checksum from %s.flyway_schema_history where script = ?", flywayDefaultSchema), Integer.class, r.getFilename());
                     assertThat(String.format("Flyway checksum did not match for '%s'", r.getFilename()),
                             checksum, is(calculateFlywayChecksum(r)));
                 });

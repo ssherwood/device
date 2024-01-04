@@ -28,6 +28,12 @@ spring:
     user: ${FLYWAY_USERNAME:yugabyte}
     password: ${FLYWAY_PASSWORD:}
     baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:false}
+    mixed: ${FLYWAY_MIXED:true} # requires if you explicitly state "concurrently" which is non-transactional
+    placeholders:
+      env: qa
+      ybIndexMode: nonconcurrently
+      deviceCount: 5000
+      mediaPerDeviceCount: 60
 
 ## Added for K8s environments
 management:

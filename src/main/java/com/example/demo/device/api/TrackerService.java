@@ -37,7 +37,7 @@ public class TrackerService {
         return trackerRepo.updateStatusEvent(deviceTrackerUpdate);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Retryable(interceptor = "ysqlRetryInterceptor")
     public boolean isDeviceAvailable(UUID accountId) {
         //sneakyThrow(new SQLException("Something happened", "40P01"));

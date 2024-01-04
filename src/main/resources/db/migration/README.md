@@ -1,5 +1,18 @@
 # YugabyteDB Migrations README
 
+## Flyway Migrations
+
+Flyway is designed to use at least two connections, one for the metadata table and one for the migrations. If the
+migration flow modifies the system catalog, queries in the metadata session will fail with the catalog snapshot
+exception because Flyway keeps the same transaction for the metadata connection. It needs to be retried.
+
+Due to this it is highly recommended to customize the FlywayMigrationStrategy and wrap the migrate() operation with a
+RetryTemplate (see the project's FlywayConfig).
+
+This also means that the migration's DDL needs to be written in an idempotent fashion because DDL operations are not
+transactional and cannot be rolled back by Flyway.  Essentially, wherever possible use "CREATE ... IF NOT EXISTS ..."
+DDL.
+
 ## DDL Operations
 
 ### CREATE INDEX
@@ -37,6 +50,8 @@ The default is only 1000 (1s) which may be too short and cause observable latenc
 in online transactions. This will cause index creation to become slower as this delay
 effectively sleeps two times (although concerns about this should be limited as the
 trade-off is potentially impacting online performance).
+
+TODO research CREATE INDEX DEFFER?
 
 ### Catalog Breaking Changes
 
